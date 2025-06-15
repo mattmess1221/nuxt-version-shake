@@ -36,7 +36,7 @@ export default defineNuxtModule({
 
 ## Usage
 
-The `checkNuxtVersion(range: string): bool` utility is a build-time macro which accepts a semver range and returns a boolean. If it returns false, the resulting block will be tree-shaken on build.
+The `checkNuxtVersion(range)` utility is a build-time macro which accepts a semver range and returns a boolean. If it returns false, the resulting block will be tree-shaken on build.
 
 Options:
 
