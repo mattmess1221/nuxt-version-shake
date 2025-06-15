@@ -3,7 +3,7 @@ import MagicString from 'magic-string'
 import { satisfies } from 'semver'
 import { createUnplugin, type TransformResult } from 'unplugin'
 
-import { name } from '../../package.json'
+import { name } from '../package.json'
 
 const pattern = /checkNuxtVersion\((".*?")\)/g
 
