@@ -18,20 +18,20 @@ If you are writing a layer, add the module to your `nuxt.config.ts`.
 
 ```ts
 export default defineNuxtConfig({
-  modules: ["nuxt-version-shake"],
-});
+  modules: ['nuxt-version-shake'],
+})
 ```
 
 If you are writing a module, install the module inside your module setup.
 
 ```ts
-import { defineNuxtModule, installModule } from "@nuxt/kit";
+import { defineNuxtModule, installModule } from '@nuxt/kit'
 
 export default defineNuxtModule({
   async setup() {
-    await installModule("nuxt-version-shake");
+    await installModule('nuxt-version-shake')
   },
-});
+})
 ```
 
 ## Usage
@@ -53,13 +53,13 @@ Passing a computed key to `useAsyncData` when Nuxt is at least 3.17.0
 
 ```ts
 export function useMyData(options) {
-  const key = computed(() => "...");
+  const key = computed(() => '...')
   return useAsyncData(
     // check will be compiled away
-    checkNuxtVersion(">=3.17.0") ? key : key.value,
+    checkNuxtVersion('>=3.17.0') ? key : key.value,
     async () => {
       // ...
     }
-  );
+  )
 }
 ```
