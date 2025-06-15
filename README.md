@@ -8,8 +8,6 @@ This module is designed for module and layer authors to assist in multi-version 
 
 This module should be installed to your layer or module's dependencies group.
 
-(TODO: upload to npm)
-
 ```sh
 pnpm add nuxt-version-shake
 ```
