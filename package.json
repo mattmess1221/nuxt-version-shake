@@ -40,7 +40,7 @@
     "test:types": "tsc --noEmit && cd playground && vue-tsc --noEmit"
   },
   "dependencies": {
-    "@nuxt/kit": ">=3.0.0",
+    "@nuxt/kit": ">=3.17.5",
     "consola": "^3.4.2",
     "magic-string": "^0.30.17",
     "semver": "^7.7.2",
