@@ -5,7 +5,7 @@ import { createUnplugin, type TransformResult } from 'unplugin'
 
 import { name } from '../package.json'
 
-const pattern = /checkNuxtVersion\((".*?")\)/g
+const pattern = /\bcheckNuxtVersion\s*\(\s*(".*?")\s*\)/g
 
 const plugin = createUnplugin<{ version: string, map?: boolean }>(({ version, map = true }) => {
   return {
