@@ -7,6 +7,16 @@ import { name } from '../package.json'
 
 const pattern = /\bcheckNuxtVersion\s*\(\s*(".*?")\s*\)/g
 
+function tryExecuteMacro(version: string, range: string): boolean {
+  try {
+    return satisfies(version, range)
+  }
+  catch (error) {
+    console.error(`Error processing checkNuxtVersion("${range}"):`, error)
+    return false
+  }
+}
+
 const plugin = createUnplugin<{ version: string, map?: boolean }>(({ version, map = true }) => {
   return {
     name,
@@ -23,7 +33,7 @@ const plugin = createUnplugin<{ version: string, map?: boolean }>(({ version, ma
         const end = start + match[0].length
         const range = JSON.parse(match[1])
 
-        const replacement = JSON.stringify(satisfies(version, range))
+        const replacement = JSON.stringify(tryExecuteMacro(version, range))
         magicString.overwrite(start, end, replacement)
       }
       if (!result) {
