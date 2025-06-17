@@ -22,13 +22,7 @@ const plugin = createUnplugin<{ version: string, map?: boolean }>(({ version, ma
     name,
     transform(code) {
       const magicString = new MagicString(code)
-      let result = false
-      while (true) {
-        const match = pattern.exec(code)
-        if (!match) {
-          break
-        }
-        result = true
+      for (const match of code.matchAll(pattern)) {
         const start = match.index
         const end = start + match[0].length
         const range = JSON.parse(match[1])
@@ -36,7 +30,7 @@ const plugin = createUnplugin<{ version: string, map?: boolean }>(({ version, ma
         const replacement = JSON.stringify(tryExecuteMacro(version, range))
         magicString.overwrite(start, end, replacement)
       }
-      if (!result) {
+      if (!magicString.hasChanged()) {
         return null
       }
       const resultObj: TransformResult = {

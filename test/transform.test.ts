@@ -16,6 +16,24 @@ describe('transform', () => {
     )
   })
 
+  it('multiple calls', async () => {
+    const result = await transform(
+      `\
+const value = checkNuxtVersion(">3.17.0")
+const value2 = checkNuxtVersion("<5.0.0")
+`,
+    )
+    expect(result).toMatchInlineSnapshot(
+      `\
+{
+  "code": "const value = true
+const value2 = true
+",
+}
+`,
+    )
+  })
+
   it('no changes', async () => {
     const result = await transform('const value = 1234')
     expect(result).toBeNull()
