@@ -16,7 +16,7 @@ export function mockNuxtVersion(version: string) {
 describe('dev shaking', async () => {
   mockNuxtVersion('3.17.5')
   await setup({
-    rootDir: fileURLToPath(new URL('./fixtures/new', import.meta.url)),
+    rootDir: fileURLToPath(new URL('./fixtures/app', import.meta.url)),
   })
   it('version check is tree-shaken', async () => {
     const html = await $fetch('/')

@@ -1,18 +1,34 @@
 import type { TransformResult } from 'unplugin'
 import type { Plugin } from 'vite'
-import { describe, expect, it } from 'vitest'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it, vi } from 'vitest'
 import plugin from '../src/build'
-import createMacros from '../src/macros'
+import { logger } from '../src/module'
+
+const DEFAULT_IMPORT = `import { checkNuxtVersion } from '#version-shake'`
+
+logger.level = 0
 
 describe('transform', () => {
+  vi.mock('@nuxt/kit', async importOriginal => ({
+    ...await importOriginal(),
+    getNuxtVersion: () => '3.17.5',
+  }))
+
   it.for([
     ['single', '\''],
     ['double', '"'],
   ])('base - %s quotes', async ([,quote]) => {
-    const code = await transform(`const value = checkNuxtVersion(${quote}>3.17.0${quote})`)
+    const code = await transform(`\
+${DEFAULT_IMPORT}
+const value = checkNuxtVersion(${quote}>3.17.0${quote})
+`,
+    )
     expect(code).toMatchInlineSnapshot(`\
 {
-  "code": "const value = true",
+  "code": "
+const value = true
+",
   "map": undefined,
 }
 `,
@@ -22,6 +38,7 @@ describe('transform', () => {
   it('multiple calls', async () => {
     const result = await transform(
       `\
+${DEFAULT_IMPORT}
 const value = checkNuxtVersion(">3.17.0")
 const value2 = checkNuxtVersion("<5.0.0")
 `,
@@ -29,7 +46,8 @@ const value2 = checkNuxtVersion("<5.0.0")
     expect(result).toMatchInlineSnapshot(
       `\
 {
-  "code": "const value = true
+  "code": "
+const value = true
 const value2 = true
 ",
   "map": undefined,
@@ -41,25 +59,76 @@ const value2 = true
   it.for([
     ['empty file', ''],
     ['not called', 'checkNuxtVersion'],
-    ['uses variable', 'const version = "3.17"\ncheckNuxtVersion(version)'],
     ['different function', 'mycheckNuxtVersion(">3.17.0")'],
+    ['no macro', 'const value = 1234'],
   ])('no changes[%s]', async ([,code]) => {
     const result = await transform(code)
     expect(result).toBeNull()
   })
-  it('no changes', async () => {
-    const result = await transform('const value = 1234')
-    expect(result).toBeNull()
+
+  it('macro is unused', async () => {
+    const result = await transform(`import { checkNuxtVersion } from "#version-shake"`)
+    expect(result).toMatchInlineSnapshot(`
+{
+  "code": "",
+  "map": undefined,
+}`)
+  })
+
+  it('alias import', async () => {
+    const result = await transform(`\
+import { checkNuxtVersion as check } from '#version-shake'
+const value = check(">3.17.0")
+`)
+    expect(result).toMatchInlineSnapshot(`\
+{
+  "code": "
+const value = true
+",
+  "map": undefined,
+}
+`)
+  })
+
+  it('shadowed import', async () => {
+    const result = await transform(
+      `\
+import { checkNuxtVersion } from '#version-shake'
+function check() {
+  const checkNuxtVersion = (range) => true
+  return checkNuxtVersion(">3.17.0")
+}
+`,
+    )
+    expect(result).toMatchInlineSnapshot(`\
+{
+  "code": "
+function check() {
+  const checkNuxtVersion = (range) => true
+  return checkNuxtVersion(">3.17.0")
+}
+",
+  "map": undefined,
+}
+    `)
   })
 
   it('with map', async () => {
-    const result = await transform('const value = checkNuxtVersion("^3.17")', { mapfile: true })
+    const result = await transform(
+      `\
+${DEFAULT_IMPORT}
+const value = checkNuxtVersion("^3.17")
+`,
+      { mapfile: true },
+    )
     expect(result).toMatchInlineSnapshot(`\
 {
-  "code": "const value = true",
+  "code": "
+const value = true
+",
   "map": SourceMap {
     "file": undefined,
-    "mappings": "AAAA,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC",
+    "mappings": ";AACA,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC;",
     "names": [],
     "sources": [
       "",
@@ -70,11 +139,53 @@ const value2 = true
 }
 `)
   })
+
+  describe('errors', () => {
+    it('parse[uses variable]', async () => {
+      const result = transform(
+        `\
+${DEFAULT_IMPORT}
+const version = "3.17"
+checkNuxtVersion(version)
+`,
+      )
+      await expect(
+        result,
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `\
+[Error: Macro transformation errors in app.vue:
+- checkNuxtVersion at app.vue:3:1 can only be used with literal values.]
+      `,
+      )
+    })
+    it('macro', async () => {
+      const result = transform(
+        `\
+import { logErrorOnBuild } from '#test-macros'
+logErrorOnBuild()
+`,
+      )
+      await expect(result).rejects.toThrowErrorMatchingInlineSnapshot(
+        `\
+[Error: Error processing macro logErrorOnBuild at app.vue:2:1: Error: This is a test macro that fails the build.]
+`,
+      )
+    })
+  })
 })
 
 async function transform(code: string, { mapfile = false }: { mapfile?: boolean } = {}): Promise<TransformResult> {
-  const macros = createMacros({ version: '3.17.5' })
-  const p = plugin.vite({ macros, mapfile }) as Plugin
+  const p = plugin.vite({
+    macros: [
+      { from: '#version-shake', name: 'checkNuxtVersion' },
+      { from: '#test-macros', name: 'logErrorOnBuild' },
+    ],
+    importAliases: {
+      '#version-shake': fileURLToPath(new URL('../src/runtime/macros', import.meta.url)),
+      '#test-macros': fileURLToPath(new URL('./fixtures/macros', import.meta.url)),
+    },
+    mapfile,
+  }) as Plugin
   // @ts-expect-error confusing vite types
   return await p.transform(code, 'app.vue')
 }
