@@ -1,6 +1,6 @@
 import { checkNuxtVersion } from '#version-shake'
 
-export function useNuxtMessage() {
+export function useNuxtMessage(): string {
   return checkNuxtVersion('>=4.0.0')
     ? 'You are running the Nuxt 4 release'
     : checkNuxtVersion('>=4.0.0-beta.0')
