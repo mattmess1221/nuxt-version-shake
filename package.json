@@ -45,6 +45,7 @@
     "magic-string": "^0.30.17",
     "oxc-walker": "^0.3.0",
     "semver": "^7.7.2",
+    "unimport": "^5.0.1",
     "unplugin": "^2.3.5"
   },
   "devDependencies": {

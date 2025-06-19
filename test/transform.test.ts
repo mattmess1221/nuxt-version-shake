@@ -3,6 +3,7 @@ import type { Plugin } from 'vite'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import plugin from '../src/build'
+import { loadMacroImports } from '../src/macros'
 import { logger } from '../src/module'
 
 const DEFAULT_IMPORT = `import { checkNuxtVersion } from '#version-shake'`
@@ -161,7 +162,7 @@ checkNuxtVersion(version)
     it('macro', async () => {
       const result = transform(
         `\
-import { logErrorOnBuild } from '#test-macros'
+import { logErrorOnBuild } from '#version-shake'
 logErrorOnBuild()
 `,
       )
@@ -174,16 +175,23 @@ logErrorOnBuild()
   })
 })
 
+function resolve(path: string): string {
+  return fileURLToPath(new URL(path, import.meta.url))
+}
+
+const imports = await loadMacroImports({
+  dirs: [
+    resolve('../src/runtime/macros'),
+  ],
+  imports: [
+    { from: resolve('./fixtures/macros'), name: 'logErrorOnBuild' },
+  ],
+})
+
 async function transform(code: string, { mapfile = false }: { mapfile?: boolean } = {}): Promise<TransformResult> {
   const p = plugin.vite({
-    macros: [
-      { from: '#version-shake', name: 'checkNuxtVersion' },
-      { from: '#test-macros', name: 'logErrorOnBuild' },
-    ],
-    importAliases: {
-      '#version-shake': fileURLToPath(new URL('../src/runtime/macros', import.meta.url)),
-      '#test-macros': fileURLToPath(new URL('./fixtures/macros', import.meta.url)),
-    },
+    alias: '#version-shake',
+    imports,
     mapfile,
   }) as Plugin
   // @ts-expect-error confusing vite types

@@ -6,12 +6,6 @@ import { parseAndWalk, ScopeTracker } from 'oxc-walker'
 import { createUnplugin } from 'unplugin'
 import { name } from '../../package.json'
 
-type MacroImport = Pick<Import, 'from' | 'name'>
-
-interface ImportAliases {
-  [alias: string]: string
-}
-
 type MacroExpression = Omit<CallExpression, 'arguments' | 'callee'> & {
   callee: Extract<CallExpression['callee'], { type: 'Identifier' }>
   arguments: Extract<CallExpression['arguments'][number], { type: 'Literal' }>[]
@@ -24,14 +18,14 @@ type ScopeTrackerImport = Extract<ScopeTrackerNode, { type: 'Import' }> & {
   importNode: ImportDeclaration
 }
 
-interface MacroOptions {
-  macros: MacroImport[]
-  importAliases: ImportAliases
+export interface MacroOptions {
+  alias: string
+  imports: Import[]
   mapfile?: boolean
 }
 
-export default createUnplugin<MacroOptions>(({ macros, importAliases, mapfile = true }) => {
-  const importSources = new Set(macros.map(({ from }) => from))
+export default createUnplugin<MacroOptions>(({ alias, imports, mapfile = true }) => {
+  const importSources = new Set(imports.map(i => i.as))
 
   return {
     name,
@@ -49,7 +43,7 @@ export default createUnplugin<MacroOptions>(({ macros, importAliases, mapfile = 
 
       // import { imported as local } from source
       // { [local]: {from: source, name: imported} }
-      const importedMacros: Record<string, MacroImport> = {}
+      const importedMacros: Record<string, Import> = {}
 
       const scopeTracker = new ScopeTracker()
 
@@ -68,39 +62,43 @@ export default createUnplugin<MacroOptions>(({ macros, importAliases, mapfile = 
           if (
             node.type === 'ImportDeclaration'
             && node.importKind !== 'type'
-            && importSources.has(node.source.value)
+            && node.source.value === alias
           ) {
-            const importName = node.source.value
             importNodes.push(node)
             for (const specifier of node.specifiers) {
               if (
                 specifier.type === 'ImportSpecifier'
                 && specifier.imported.type === 'Identifier'
+                && importSources.has(specifier.imported.name)
               ) {
+                const importedName = specifier.imported.name
                 const localName = specifier.local.name
-                importedMacros[localName] = { name: specifier.imported.name, from: importName }
+                importedMacros[localName] = imports.find(i => i.as === importedName)!
+              }
+              else {
+                transformErrors.push(`${formatLine(node.start)}: Unknown import`)
+                return
               }
             }
           }
 
           // find all the macros being used
           if (node.type === 'CallExpression') {
-            const { callee, arguments: _arguments } = node
-            if (callee.type === 'Identifier' && callee.name in importedMacros) {
+            if (node.callee.type === 'Identifier' && node.callee.name in importedMacros) {
               // ignore shadowed function calls
-              const declaration = scopeTracker.getDeclaration(callee.name)
+              const declaration = scopeTracker.getDeclaration(node.callee.name)
               if (declaration?.type !== 'Import'
                 || declaration.node.type !== 'ImportSpecifier'
                 || declaration.importNode.type !== 'ImportDeclaration') {
                 return
               }
-              localUseCounts[callee.name] ??= 0
-              localUseCounts[callee.name] += 1
+              localUseCounts[node.callee.name] ??= 0
+              localUseCounts[node.callee.name] += 1
 
               // limit arguments to literal values
-              if (!_arguments.every(arg => arg.type === 'Literal')) {
+              if (!node.arguments.every(arg => arg.type === 'Literal')) {
                 transformErrors.push(
-                  `${callee.name} at ${formatLine(node.start)} can only be used with literal values.`,
+                  `${node.callee.name} at ${formatLine(node.start)} can only be used with literal values.`,
                 )
                 return
               }
@@ -119,11 +117,7 @@ export default createUnplugin<MacroOptions>(({ macros, importAliases, mapfile = 
       for (const [node, declaration] of callNodes) {
         const { callee } = node
 
-        let from = declaration.importNode.source.value
-        while (from in importAliases) {
-          from = importAliases[from]
-        }
-        const name = declaration.node.imported.name
+        const { from, name } = importedMacros[declaration.node.local.name]
 
         const macro = (await import(from))[name]
 
