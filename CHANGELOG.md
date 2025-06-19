@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v0.1.1
+
+[compare changes](https://github.com/mattmess1221/nuxt-version-shake/compare/v0.1.0...v0.1.1)
+
+### 🩹 Fixes
+
+- Resolve issues with ESM directory imports ([9a7d9ae](https://github.com/mattmess1221/nuxt-version-shake/commit/9a7d9ae))
+
+### 📖 Documentation
+
+- Update README.md ([194bd01](https://github.com/mattmess1221/nuxt-version-shake/commit/194bd01))
+
+### ❤️ Contributors
+
+- Matthew Messinger ([@mattmess1221](https://github.com/mattmess1221))
+
 ## v0.1.0
 
 [compare changes](https://github.com/mattmess1221/nuxt-version-shake/compare/v0.0.2...v0.1.0)
