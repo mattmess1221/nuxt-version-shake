@@ -34,6 +34,8 @@ export default defineNuxtModule({
 
 ## Usage
 
+All macros must be explicitly imported from `#version-shake`.
+
 The `checkNuxtVersion(range)` utility is a build-time macro which accepts a semver range and returns a boolean. If it returns false, the resulting block will be tree-shaken on build.
 
 Options:
@@ -50,6 +52,8 @@ Options:
 Passing a computed key to `useAsyncData` when Nuxt is at least 3.17.0
 
 ```ts
+import { checkNuxtVersion } from '#version-shake'
+
 export function useMyData(options) {
   const key = computed(() => '...')
   return useAsyncData(
