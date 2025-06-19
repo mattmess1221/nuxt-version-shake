@@ -43,6 +43,7 @@
     "@nuxt/kit": ">=3.17.5",
     "consola": "^3.4.2",
     "magic-string": "^0.30.17",
+    "oxc-walker": "^0.3.0",
     "semver": "^7.7.2",
     "unplugin": "^2.3.5"
   },
