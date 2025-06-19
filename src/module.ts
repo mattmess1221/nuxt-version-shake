@@ -29,7 +29,7 @@ export default defineNuxtModule({
       // so that the unimport plugin can resolve them correctly.
       // Import aliases are not available during build-time.
       importAliases: {
-        [importName]: resolve('./runtime/macros'),
+        [importName]: resolve('./runtime/macros/index.js'),
       },
     }
 
