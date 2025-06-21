@@ -4,6 +4,9 @@ Easy version checking for nuxt with tree-shaking support.
 
 This module is designed for module and layer authors to assist in multi-version support.
 
+> [!caution] 
+> This package has been deleted from npm. Update the nuxt compatibility if you require features added in a minor version.
+
 ## Installation
 
 This module should be installed to your layer or module's dependencies group.
